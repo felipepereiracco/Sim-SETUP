@@ -6,15 +6,18 @@ Runs entirely in the browser — no server required. Hosted on **GitHub Pages**.
 
 **Live site:** `https://felipepereiracco.github.io/Sim-SETUP/`
 
+**Supported games:** Assetto Corsa Evo · Gran Turismo 7
+
 ---
 
 ## Features
 
 | Area | Description |
 |------|-------------|
-| **Data integration** | JSON catalogs for 75+ cars and 20 track layouts in `data/` |
-| **Optimization** | Client-side engine adjusts tyres, suspension, aero, electronics, and fuel from lap count and track profile |
-| **UI** | Responsive single-page app with grouped selectors, lap slider, fuel summary, and copy-to-clipboard |
+| **Multi-game** | Switch between AC Evo and GT7; each game has its own car/track JSON catalogs |
+| **Stint planning** | Set stint length by **laps** (slider) or **race time** (minutes → estimated laps from track lap time) |
+| **Optimization** | Client-side engine adjusts tyres, suspension, aero, electronics, and fuel from stint and track profile |
+| **UI** | Responsive single-page app with grouped selectors, fuel summary, and copy-to-clipboard |
 
 ---
 
@@ -38,7 +41,9 @@ Runs entirely in the browser — no server required. Hosted on **GitHub Pages**.
 
 ## Run locally
 
-Any static file server works:
+You need a simple static file server (opening `index.html` directly in the browser will block JSON loading).
+
+### Option A — Python (built-in on macOS)
 
 ```bash
 cd Sim-SETUP
@@ -46,6 +51,21 @@ python3 -m http.server 8080
 ```
 
 Open **http://127.0.0.1:8080**
+
+### Option B — Node.js
+
+```bash
+cd Sim-SETUP
+npx --yes serve -p 8080
+```
+
+Open **http://localhost:8080**
+
+### Quick check
+
+1. Choose **Gran Turismo 7** in the Game dropdown — cars and tracks should reload.
+2. Switch stint to **Time**, pick a track, and confirm the “≈ N laps” estimate updates.
+3. Generate a setup and verify fuel values appear.
 
 ---
 

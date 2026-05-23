@@ -53,6 +53,10 @@
       const tracks = await this.getTracks(gameId);
       return tracks.find((t) => t.id === trackId) || null;
     }
+
+    clearCache() {
+      this._cache = {};
+    }
   }
 
   async function createDataRegistry(basePath = "data") {

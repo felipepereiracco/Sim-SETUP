@@ -11,6 +11,17 @@
         "cars": "cars.json",
         "tracks": "tracks.json"
       }
+    },
+    {
+      "id": "gt7",
+      "name": "Gran Turismo 7",
+      "short_name": "GT7",
+      "version_label": "v1.52",
+      "active": true,
+      "data_files": {
+        "cars": "cars_gt7.json",
+        "tracks": "tracks_gt7.json"
+      }
     }
   ]
 }

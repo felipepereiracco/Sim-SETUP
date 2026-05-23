@@ -1,8 +1,14 @@
+const gameSelect = document.getElementById("game");
 const carSelect = document.getElementById("car");
 const trackSelect = document.getElementById("track");
 const lapsRange = document.getElementById("laps");
-const lapsExact = document.getElementById("laps-exact");
 const lapsValue = document.getElementById("laps-value");
+const stintMinutesRange = document.getElementById("stint-minutes");
+const timeValue = document.getElementById("time-value");
+const stintLapsPanel = document.getElementById("stint-laps-panel");
+const stintTimePanel = document.getElementById("stint-time-panel");
+const timeLapsEstimate = document.getElementById("time-laps-estimate");
+const stintModeBtns = document.querySelectorAll(".stint-mode-btn");
 const form = document.getElementById("setup-form");
 const results = document.getElementById("results");
 const resultsTitle = document.getElementById("results-title");
@@ -18,10 +24,16 @@ const fuelBanner = document.getElementById("fuel-banner");
 const fuelLitres = document.getElementById("fuel-litres");
 const fuelPerLap = document.getElementById("fuel-per-lap");
 const fuelDistance = document.getElementById("fuel-distance");
+const gameBadge = document.getElementById("game-badge");
 
-const GAME_ID = DEFAULT_GAME_ID;
 let lastSetup = null;
 let registry = null;
+let stintMode = "laps";
+let tracksCache = [];
+
+function currentGameId() {
+  return gameSelect.value || DEFAULT_GAME_ID;
+}
 
 function groupOptions(items, keyField) {
   const groups = {};
@@ -35,60 +47,128 @@ function groupOptions(items, keyField) {
     .map((key) => ({ key, items: groups[key] }));
 }
 
-function syncLaps(fromExact) {
-  let n = fromExact ? parseInt(lapsExact.value, 10) : parseInt(lapsRange.value, 10);
-  if (Number.isNaN(n)) n = 10;
-  n = Math.min(200, Math.max(1, n));
-  lapsRange.value = Math.min(60, n);
-  lapsExact.value = n;
+function resetSelect(select, placeholder) {
+  select.innerHTML = "";
+  const opt = document.createElement("option");
+  opt.value = "";
+  opt.textContent = placeholder;
+  select.appendChild(opt);
+}
+
+function fillGroupedSelect(select, items, groupKey, formatItem) {
+  for (const { key, items: groupItems } of groupOptions(items, groupKey)) {
+    const optgroup = document.createElement("optgroup");
+    optgroup.label = key;
+    for (const item of groupItems) {
+      const opt = document.createElement("option");
+      opt.value = item.id;
+      opt.textContent = formatItem(item);
+      optgroup.appendChild(opt);
+    }
+    select.appendChild(optgroup);
+  }
+}
+
+function syncLapsDisplay() {
+  const n = Math.min(100, Math.max(1, parseInt(lapsRange.value, 10) || 10));
+  lapsRange.value = n;
   lapsValue.textContent = String(n);
 }
 
-lapsRange.addEventListener("input", () => {
-  lapsExact.value = lapsRange.value;
-  syncLaps(false);
-});
+function syncTimeDisplay() {
+  const m = Math.min(120, Math.max(5, parseInt(stintMinutesRange.value, 10) || 30));
+  stintMinutesRange.value = m;
+  timeValue.textContent = String(m);
+  updateTimeLapEstimate();
+}
 
-lapsExact.addEventListener("change", () => syncLaps(true));
+async function updateTimeLapEstimate() {
+  const trackId = trackSelect.value;
+  const minutes = parseInt(stintMinutesRange.value, 10) || 30;
+  if (!trackId) {
+    timeLapsEstimate.textContent = "≈ — laps (select a track)";
+    return;
+  }
+  const track = tracksCache.find((t) => t.id === trackId);
+  if (!track) {
+    timeLapsEstimate.textContent = "≈ — laps";
+    return;
+  }
+  const laps = lapsFromStintMinutes(track, minutes);
+  const lapSec = estimateLapTimeSeconds(track);
+  timeLapsEstimate.textContent = `≈ ${laps} laps (${formatLapTime(lapSec)} per lap)`;
+}
 
-async function loadCatalog() {
+function setStintMode(mode) {
+  stintMode = mode;
+  stintModeBtns.forEach((btn) => {
+    const active = btn.dataset.mode === mode;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+  const isLaps = mode === "laps";
+  stintLapsPanel.hidden = !isLaps;
+  stintTimePanel.hidden = isLaps;
+  if (!isLaps) updateTimeLapEstimate();
+}
+
+async function loadGames() {
   registry = await createDataRegistry("data");
+  const games = registry.listGames();
+  gameSelect.innerHTML = "";
+  for (const game of games) {
+    const opt = document.createElement("option");
+    opt.value = game.id;
+    opt.textContent = `${game.name}${game.version_label ? ` (${game.version_label})` : ""}`;
+    gameSelect.appendChild(opt);
+  }
+  if (games.length) {
+    gameSelect.value = games[0].id;
+    await loadCatalogForGame(games[0].id);
+  }
+}
+
+async function loadCatalogForGame(gameId) {
+  if (!registry) return;
+  registry.clearCache();
+
+  resetSelect(carSelect, "Choose a car…");
+  resetSelect(trackSelect, "Choose a track…");
+
   const [cars, tracks, games] = await Promise.all([
-    registry.getCars(GAME_ID),
-    registry.getTracks(GAME_ID),
+    registry.getCars(gameId),
+    registry.getTracks(gameId),
     Promise.resolve(registry.listGames()),
   ]);
 
-  const game = games.find((g) => g.id === GAME_ID);
+  tracksCache = tracks;
+
+  const game = games.find((g) => g.id === gameId);
   if (game) {
-    const badge = document.getElementById("game-badge");
-    if (badge) badge.textContent = game.name;
+    gameBadge.textContent = game.short_name || game.name;
   }
 
-  for (const { key, items } of groupOptions(cars, "brand")) {
-    const optgroup = document.createElement("optgroup");
-    optgroup.label = key;
-    for (const car of items) {
-      const opt = document.createElement("option");
-      opt.value = car.id;
-      opt.textContent = car.name;
-      optgroup.appendChild(opt);
-    }
-    carSelect.appendChild(optgroup);
-  }
+  fillGroupedSelect(carSelect, cars, "brand", (car) => car.name);
+  fillGroupedSelect(trackSelect, tracks, "country", (track) => {
+    const layout = track.layout !== "Grand Prix" ? ` (${track.layout})` : "";
+    return `${track.name}${layout}`;
+  });
 
-  for (const { key, items } of groupOptions(tracks, "country")) {
-    const optgroup = document.createElement("optgroup");
-    optgroup.label = key;
-    for (const track of items) {
-      const opt = document.createElement("option");
-      opt.value = track.id;
-      const layout = track.layout !== "Grand Prix" ? ` (${track.layout})` : "";
-      opt.textContent = `${track.name}${layout}`;
-      optgroup.appendChild(opt);
-    }
-    trackSelect.appendChild(optgroup);
+  carSelect.disabled = false;
+  trackSelect.disabled = false;
+  results.hidden = true;
+  updateTimeLapEstimate();
+}
+
+async function resolveStintLaps() {
+  if (stintMode === "laps") {
+    return parseInt(lapsRange.value, 10) || 10;
   }
+  const trackId = trackSelect.value;
+  if (!trackId) throw new Error("Select a track for time-based stint");
+  const track = tracksCache.find((t) => t.id === trackId) || (await registry.findTrack(trackId, currentGameId()));
+  if (!track) throw new Error("Unknown track");
+  return lapsFromStintMinutes(track, parseInt(stintMinutesRange.value, 10) || 30);
 }
 
 function setLoading(loading) {
@@ -155,8 +235,9 @@ function renderSetup(setup) {
 
   resultsTitle.textContent = meta.car;
   resultsMeta.textContent = [
+    meta.game,
     meta.track,
-    `${meta.laps} laps`,
+    meta.stint_display || `${meta.laps} laps`,
     meta.priority,
     meta.goal,
   ].join(" · ");
@@ -209,8 +290,9 @@ function renderSetup(setup) {
 function setupToPlainText(setup) {
   const lines = [
     `ACE Setup — ${setup.meta.car}`,
+    `Game: ${setup.meta.game}`,
     `Track: ${setup.meta.track}`,
-    `Laps: ${setup.meta.laps} · ${setup.meta.priority} · ${setup.meta.goal}`,
+    `Stint: ${setup.meta.stint_display || setup.meta.laps + " laps"} · ${setup.meta.priority} · ${setup.meta.goal}`,
     "",
   ];
   if (setup.fuel_summary) {
@@ -228,6 +310,18 @@ function setupToPlainText(setup) {
   return lines.join("\n").trim();
 }
 
+stintModeBtns.forEach((btn) => {
+  btn.addEventListener("click", () => setStintMode(btn.dataset.mode));
+});
+
+lapsRange.addEventListener("input", syncLapsDisplay);
+stintMinutesRange.addEventListener("input", syncTimeDisplay);
+trackSelect.addEventListener("change", updateTimeLapEstimate);
+
+gameSelect.addEventListener("change", () => {
+  loadCatalogForGame(gameSelect.value).catch(() => showToast("Could not load game data"));
+});
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   if (!registry) {
@@ -235,25 +329,27 @@ form.addEventListener("submit", async (e) => {
     return;
   }
 
-  setLoading(true);
-
   const carId = carSelect.value;
   const trackId = trackSelect.value;
   if (!carId || !trackId) {
     showToast("Choose a car and track");
-    setLoading(false);
     return;
   }
 
+  setLoading(true);
+
   try {
+    const laps = await resolveStintLaps();
     const setup = await generateSetup(
       carId,
       trackId,
       {
         goal: document.getElementById("goal").value,
         priority: document.getElementById("priority").value,
-        laps: parseInt(lapsExact.value, 10) || 10,
-        game_id: GAME_ID,
+        laps,
+        game_id: currentGameId(),
+        stint_mode: stintMode,
+        stint_minutes: stintMode === "time" ? parseInt(stintMinutesRange.value, 10) : null,
       },
       registry
     );
@@ -275,5 +371,7 @@ copyBtn.addEventListener("click", async () => {
   }
 });
 
-syncLaps(false);
-loadCatalog().catch(() => showToast("Could not load cars and tracks"));
+syncLapsDisplay();
+syncTimeDisplay();
+setStintMode("laps");
+loadGames().catch(() => showToast("Could not load games"));

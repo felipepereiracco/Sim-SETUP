@@ -175,8 +175,45 @@
     return notes;
   }
 
+  function balanceNotesWithStint(car, track, laps, fuel, priority, gameId, stintMode, stintMinutes) {
+    const notes = balanceNotes(car, track, laps, fuel, priority);
+    if (stintMode === "time" && stintMinutes != null) {
+      notes.unshift(
+        `Stint planned for ${stintMinutes} minutes (~${laps} laps at this track).`
+      );
+    }
+    if (gameId === "gt7") {
+      notes.push("GT7: apply values in Car Settings — tyres, suspension, diff, and downforce menus.");
+    }
+    return notes;
+  }
+
   function titleCaseGoal(goal) {
     return goal.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  function estimateLapTimeSeconds(track) {
+    if (track.lap_time_sec) return Number(track.lap_time_sec);
+    const lengthKm = Number(track.length_km ?? 5);
+    const speedKmh = {
+      very_high: 215,
+      high: 185,
+      medium: 155,
+      low: 125,
+    }[track.avg_speed] || 160;
+    return Math.round((lengthKm / speedKmh) * 3600);
+  }
+
+  function lapsFromStintMinutes(track, minutes) {
+    const lapSec = estimateLapTimeSeconds(track);
+    const laps = Math.round((minutes * 60) / lapSec);
+    return Math.max(1, Math.min(200, laps));
+  }
+
+  function formatLapTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
   }
 
   async function generateSetup(carId, trackId, options = {}, registry) {
@@ -185,6 +222,8 @@
       laps = 10,
       priority = "balanced",
       game_id: gameId = global.DEFAULT_GAME_ID,
+      stint_mode: stintMode = "laps",
+      stint_minutes: stintMinutes = null,
     } = options;
 
     const car = await registry.findCar(carId, gameId);
@@ -198,6 +237,11 @@
     }
 
     const lapsInt = Math.floor(clamp(Number(laps), 1, 200));
+    const stintMinutesInt =
+      stintMode === "time" && stintMinutes != null
+        ? Math.floor(clamp(Number(stintMinutes), 5, 240))
+        : null;
+    const lapTimeSec = estimateLapTimeSeconds(track);
     const category = car.category;
     const caps = CATEGORY_CAPS[category] || CATEGORY_CAPS.track_day;
     const base = categoryBase(category);
@@ -238,6 +282,13 @@
       fuel_efficiency: "Fuel efficiency",
     };
 
+    let stintDisplay;
+    if (stintMode === "time" && stintMinutesInt != null) {
+      stintDisplay = `${stintMinutesInt} min (~${lapsInt} laps @ ${formatLapTime(lapTimeSec)}/lap)`;
+    } else {
+      stintDisplay = `${lapsInt} laps`;
+    }
+
     const setup = {
       meta: {
         car: car.name,
@@ -248,6 +299,11 @@
         goal: titleCaseGoal(goal),
         priority: priorityLabels[priority],
         laps: lapsInt,
+        stint_mode: stintMode,
+        stint_minutes: stintMinutesInt,
+        stint_display: stintDisplay,
+        lap_time_sec: lapTimeSec,
+        game: gameId === "gt7" ? "Gran Turismo 7" : gameId === "ac_evo" ? "Assetto Corsa Evo" : gameId,
         focus: "Handling + fuel strategy tuned to stint length and track profile",
         game_id: gameId,
       },
@@ -257,7 +313,16 @@
         distance_km: fuel.distance_km,
         stint: fuel.stint,
       },
-      notes: balanceNotes(car, track, lapsInt, fuel, priority),
+      notes: balanceNotesWithStint(
+        car,
+        track,
+        lapsInt,
+        fuel,
+        priority,
+        gameId,
+        stintMode,
+        stintMinutesInt
+      ),
       sections: {},
     };
 
@@ -388,4 +453,7 @@
   }
 
   global.generateSetup = generateSetup;
+  global.estimateLapTimeSeconds = estimateLapTimeSeconds;
+  global.lapsFromStintMinutes = lapsFromStintMinutes;
+  global.formatLapTime = formatLapTime;
 })(window);

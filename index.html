@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Optimized car setups for Assetto Corsa Evo — handling and fuel strategy by lap count." />
+  <meta name="description" content="Optimized car setups for sim racing — handling and fuel strategy by laps or race time." />
   <title>ACE Setup — Optimized for every lap</title>
   <link rel="stylesheet" href="css/style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -14,16 +14,16 @@
   <nav class="nav glass">
     <div class="nav-inner">
       <a href="#" class="logo">ACE Setup</a>
-      <span class="nav-badge" id="game-badge">Assetto Corsa Evo</span>
+      <span class="nav-badge" id="game-badge">—</span>
     </div>
   </nav>
 
   <header class="hero">
     <p class="hero-eyebrow">Handling &amp; fuel strategy</p>
     <h1 class="hero-title">Every combo.<br />Every stint.</h1>
-    <p class="hero-subtitle">
-      Select any car and track in Assetto Corsa Evo, set your lap count, and get a full setup tuned for
-      grip, balance, and fuel load — ready to enter in-game.
+    <p class="hero-subtitle" id="hero-subtitle">
+      Pick your game, car, and track. Set stint length by laps or race time and get a full setup tuned for
+      grip, balance, and fuel load.
     </p>
   </header>
 
@@ -31,26 +31,43 @@
     <section class="selector-card glass" id="selector">
       <form id="setup-form" class="setup-form">
         <div class="form-grid">
+          <div class="field field-full">
+            <label for="game">Game</label>
+            <select id="game" name="game_id" required></select>
+          </div>
           <div class="field">
             <label for="car">Car</label>
-            <select id="car" name="car_id" required>
+            <select id="car" name="car_id" required disabled>
               <option value="">Choose a car…</option>
             </select>
           </div>
           <div class="field">
             <label for="track">Track</label>
-            <select id="track" name="track_id" required>
+            <select id="track" name="track_id" required disabled>
               <option value="">Choose a track…</option>
             </select>
           </div>
-          <div class="field">
-            <label for="laps">Number of laps</label>
-            <div class="laps-control">
-              <input type="range" id="laps" name="laps" min="1" max="60" value="10" />
-              <output id="laps-value" for="laps" class="laps-output">10</output>
+          <div class="field field-full stint-field">
+            <label>Stint length</label>
+            <div class="stint-mode" role="radiogroup" aria-label="Stint length mode">
+              <button type="button" class="stint-mode-btn active" data-mode="laps" aria-pressed="true">Laps</button>
+              <button type="button" class="stint-mode-btn" data-mode="time" aria-pressed="false">Time</button>
             </div>
-            <p class="field-hint">Fuel load and stint tuning scale with lap count (1–200 via direct input).</p>
-            <input type="number" id="laps-exact" class="laps-exact" min="1" max="200" value="10" aria-label="Exact lap count" />
+            <div class="stint-panel" id="stint-laps-panel">
+              <div class="laps-control">
+                <input type="range" id="laps" name="laps" min="1" max="100" value="10" />
+                <output id="laps-value" for="laps" class="laps-output">10</output>
+                <span class="stint-unit">laps</span>
+              </div>
+            </div>
+            <div class="stint-panel hidden" id="stint-time-panel" hidden>
+              <div class="laps-control">
+                <input type="range" id="stint-minutes" min="5" max="120" value="30" step="5" />
+                <output id="time-value" for="stint-minutes" class="laps-output">30</output>
+                <span class="stint-unit">min</span>
+              </div>
+              <p class="stint-estimate" id="time-laps-estimate">≈ — laps (select a track)</p>
+            </div>
           </div>
           <div class="field">
             <label for="priority">Optimization focus</label>
@@ -60,7 +77,7 @@
               <option value="fuel_efficiency">Fuel efficiency</option>
             </select>
           </div>
-          <div class="field field-full">
+          <div class="field">
             <label for="goal">Handling goal</label>
             <select id="goal" name="goal">
               <option value="balanced_handling">Balanced handling (recommended)</option>
@@ -111,13 +128,13 @@
     </section>
 
     <p class="disclaimer" id="disclaimer">
-      Recommendations follow sim-racing best practices for AC Evo Early Access. Always validate with tyre
-      temps and lap feel. In-game setup options vary by car class. Not affiliated with Kunos Simulazioni.
+      Recommendations follow sim-racing best practices. Always validate with tyre temps and lap feel.
+      Not affiliated with game publishers.
     </p>
   </main>
 
   <footer class="footer">
-    <p>Static site — car and track data in <code>data/</code>. Hosted on GitHub Pages.</p>
+    <p>Static site — data in <code>data/</code>. Supports AC Evo &amp; Gran Turismo 7.</p>
   </footer>
 
   <script src="js/data-registry.js"></script>

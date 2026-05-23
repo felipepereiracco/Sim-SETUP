@@ -227,22 +227,52 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.laps-exact {
-  width: 100%;
-  margin-top: 10px;
+.stint-unit {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  min-width: 2.5rem;
+}
+
+.stint-mode {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.stint-mode-btn {
+  flex: 1;
   font-family: var(--font);
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 600;
   padding: 10px 14px;
-  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
   background: var(--black-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+.stint-mode-btn:hover {
+  border-color: var(--orange);
   color: var(--text);
 }
 
-.laps-exact:focus {
+.stint-mode-btn.active {
   border-color: var(--red);
-  outline: none;
-  box-shadow: 0 0 0 4px rgba(225, 29, 46, 0.2);
+  background: rgba(225, 29, 46, 0.15);
+  color: var(--yellow);
+}
+
+.stint-panel.hidden {
+  display: none;
+}
+
+.stint-estimate {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin: 10px 0 0;
 }
 
 .fuel-banner {
