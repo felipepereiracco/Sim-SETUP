@@ -92,6 +92,13 @@ Open **http://localhost:8080**
 
 ## Online hosting
 
+### GitHub Actions → Fly.io
+
+This repo includes `.github/workflows/deploy.yml`. Push to `main` after:
+
+1. `fly launch` (once) and set `FLY_API_TOKEN` in repo **Settings → Secrets → Actions**.
+2. **Turn off GitHub Pages** under **Settings → Pages → Source: None**. Pages only serves static sites and cannot run this Flask app; a Pages build will fail on `venv/` or deploy a non-functional site.
+
 ### Recommended platforms
 
 | Platform | Best for | Notes |
