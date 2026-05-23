@@ -19,8 +19,9 @@ const fuelLitres = document.getElementById("fuel-litres");
 const fuelPerLap = document.getElementById("fuel-per-lap");
 const fuelDistance = document.getElementById("fuel-distance");
 
-const GAME_ID = "ac_evo";
+const GAME_ID = DEFAULT_GAME_ID;
 let lastSetup = null;
+let registry = null;
 
 function groupOptions(items, keyField) {
   const groups = {};
@@ -51,14 +52,13 @@ lapsRange.addEventListener("input", () => {
 lapsExact.addEventListener("change", () => syncLaps(true));
 
 async function loadCatalog() {
-  const [carsRes, tracksRes, gamesRes] = await Promise.all([
-    fetch(`/api/cars?game_id=${GAME_ID}`),
-    fetch(`/api/tracks?game_id=${GAME_ID}`),
-    fetch("/api/games"),
+  registry = await createDataRegistry("data");
+  const [cars, tracks, games] = await Promise.all([
+    registry.getCars(GAME_ID),
+    registry.getTracks(GAME_ID),
+    Promise.resolve(registry.listGames()),
   ]);
-  const cars = await carsRes.json();
-  const tracks = await tracksRes.json();
-  const games = await gamesRes.json();
+
   const game = games.find((g) => g.id === GAME_ID);
   if (game) {
     const badge = document.getElementById("game-badge");
@@ -230,28 +230,36 @@ function setupToPlainText(setup) {
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (!registry) {
+    showToast("Data not loaded yet");
+    return;
+  }
+
   setLoading(true);
 
-  const payload = {
-    car_id: carSelect.value,
-    track_id: trackSelect.value,
-    goal: document.getElementById("goal").value,
-    priority: document.getElementById("priority").value,
-    laps: parseInt(lapsExact.value, 10) || 10,
-    game_id: GAME_ID,
-  };
+  const carId = carSelect.value;
+  const trackId = trackSelect.value;
+  if (!carId || !trackId) {
+    showToast("Choose a car and track");
+    setLoading(false);
+    return;
+  }
 
   try {
-    const res = await fetch("/api/setup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to generate setup");
-    renderSetup(data);
+    const setup = await generateSetup(
+      carId,
+      trackId,
+      {
+        goal: document.getElementById("goal").value,
+        priority: document.getElementById("priority").value,
+        laps: parseInt(lapsExact.value, 10) || 10,
+        game_id: GAME_ID,
+      },
+      registry
+    );
+    renderSetup(setup);
   } catch (err) {
-    showToast(err.message);
+    showToast(err.message || "Failed to generate setup");
   } finally {
     setLoading(false);
   }

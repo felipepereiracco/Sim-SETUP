@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Optimized car setups for Assetto Corsa Evo — handling and fuel strategy by lap count." />
   <title>ACE Setup — Optimized for every lap</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="stylesheet" href="css/style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -117,9 +117,11 @@
   </main>
 
   <footer class="footer">
-    <p>Modular data layer — extend <code>data/manifest.json</code> for future titles.</p>
+    <p>Static site — car and track data in <code>data/</code>. Hosted on GitHub Pages.</p>
   </footer>
 
-  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script src="js/data-registry.js"></script>
+  <script src="js/setup-engine.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
