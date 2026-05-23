@@ -3,8 +3,9 @@ const carSelect = document.getElementById("car");
 const trackSelect = document.getElementById("track");
 const lapsRange = document.getElementById("laps");
 const lapsValue = document.getElementById("laps-value");
-const stintMinutesRange = document.getElementById("stint-minutes");
-const timeValue = document.getElementById("time-value");
+const stintMinutesInput = document.getElementById("stint-minutes");
+const stintMinutesPreset = document.getElementById("stint-minutes-preset");
+const stintMinutesSlider = document.getElementById("stint-minutes-slider");
 const stintLapsPanel = document.getElementById("stint-laps-panel");
 const stintTimePanel = document.getElementById("stint-time-panel");
 const timeLapsEstimate = document.getElementById("time-laps-estimate");
@@ -14,6 +15,7 @@ const results = document.getElementById("results");
 const resultsTitle = document.getElementById("results-title");
 const resultsMeta = document.getElementById("results-meta");
 const notesList = document.getElementById("notes-list");
+const setupAvailability = document.getElementById("setup-availability");
 const sectionsContainer = document.getElementById("sections-container");
 const tipsContainer = document.getElementById("tips-container");
 const generateBtn = document.getElementById("generate-btn");
@@ -25,6 +27,16 @@ const fuelLitres = document.getElementById("fuel-litres");
 const fuelPerLap = document.getElementById("fuel-per-lap");
 const fuelDistance = document.getElementById("fuel-distance");
 const gameBadge = document.getElementById("game-badge");
+
+const SECTION_ORDER = [
+  "tyres",
+  "electronics",
+  "fuel_strategy",
+  "suspension",
+  "dampers",
+  "aerodynamics",
+  "brakes",
+];
 
 let lastSetup = null;
 let registry = null;
@@ -75,16 +87,32 @@ function syncLapsDisplay() {
   lapsValue.textContent = String(n);
 }
 
-function syncTimeDisplay() {
-  const m = Math.min(120, Math.max(5, parseInt(stintMinutesRange.value, 10) || 30));
-  stintMinutesRange.value = m;
-  timeValue.textContent = String(m);
+function getStintMinutes() {
+  return Math.min(240, Math.max(5, parseInt(stintMinutesInput.value, 10) || 30));
+}
+
+function setStintMinutes(minutes) {
+  const m = Math.min(240, Math.max(5, minutes));
+  stintMinutesInput.value = m;
+  stintMinutesSlider.value = Math.min(120, m);
+  const presetMatch = [...stintMinutesPreset.options].find(
+    (o) => o.value !== "custom" && parseInt(o.value, 10) === m
+  );
+  stintMinutesPreset.value = presetMatch ? String(m) : "custom";
   updateTimeLapEstimate();
+}
+
+function syncStintMinutesFromInput() {
+  setStintMinutes(getStintMinutes());
+}
+
+function syncStintMinutesFromSlider() {
+  setStintMinutes(parseInt(stintMinutesSlider.value, 10) || 30);
 }
 
 async function updateTimeLapEstimate() {
   const trackId = trackSelect.value;
-  const minutes = parseInt(stintMinutesRange.value, 10) || 30;
+  const minutes = getStintMinutes();
   if (!trackId) {
     timeLapsEstimate.textContent = "≈ — laps (select a track)";
     return;
@@ -107,8 +135,8 @@ function setStintMode(mode) {
     btn.setAttribute("aria-pressed", active ? "true" : "false");
   });
   const isLaps = mode === "laps";
-  stintLapsPanel.hidden = !isLaps;
-  stintTimePanel.hidden = isLaps;
+  stintLapsPanel.classList.toggle("is-hidden", !isLaps);
+  stintTimePanel.classList.toggle("is-hidden", isLaps);
   if (!isLaps) updateTimeLapEstimate();
 }
 
@@ -168,7 +196,7 @@ async function resolveStintLaps() {
   if (!trackId) throw new Error("Select a track for time-based stint");
   const track = tracksCache.find((t) => t.id === trackId) || (await registry.findTrack(trackId, currentGameId()));
   if (!track) throw new Error("Unknown track");
-  return lapsFromStintMinutes(track, parseInt(stintMinutesRange.value, 10) || 30);
+  return lapsFromStintMinutes(track, getStintMinutes());
 }
 
 function setLoading(loading) {
@@ -177,17 +205,8 @@ function setLoading(loading) {
   btnLabel.textContent = loading ? "Generating…" : "Generate setup";
 }
 
-function renderSection(key, section) {
-  const card = document.createElement("article");
-  card.className = "section-card";
-  if (key === "dampers" || key === "brakes") {
-    card.classList.add("span-full");
-  }
-
-  const heading = document.createElement("h3");
-  heading.textContent = section.title;
-  card.appendChild(heading);
-
+function renderParamRows(section) {
+  const frag = document.createDocumentFragment();
   for (const row of section.values) {
     const block = document.createElement("div");
     block.className = "param-row";
@@ -211,10 +230,65 @@ function renderSection(key, section) {
 
     block.appendChild(left);
     block.appendChild(value);
-    card.appendChild(block);
+    frag.appendChild(block);
   }
+  return frag;
+}
 
-  return card;
+function activateSetupTab(tabKey) {
+  sectionsContainer.querySelectorAll(".setup-tab").forEach((tab) => {
+    const active = tab.dataset.tab === tabKey;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  sectionsContainer.querySelectorAll(".setup-tab-panel").forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.tab === tabKey);
+  });
+}
+
+function renderSetupTabs(setup) {
+  const available = SECTION_ORDER.filter((key) => setup.sections[key]);
+  sectionsContainer.innerHTML = "";
+
+  if (!available.length) return;
+
+  const tabsRoot = document.createElement("div");
+  tabsRoot.className = "setup-tabs";
+
+  const tabList = document.createElement("div");
+  tabList.className = "setup-tabs-list";
+  tabList.setAttribute("role", "tablist");
+
+  const panelsWrap = document.createElement("div");
+  panelsWrap.className = "setup-tabs-panels";
+
+  available.forEach((key, index) => {
+    const section = setup.sections[key];
+
+    const tab = document.createElement("button");
+    tab.type = "button";
+    tab.className = `setup-tab${index === 0 ? " active" : ""}`;
+    tab.dataset.tab = key;
+    tab.setAttribute("role", "tab");
+    tab.setAttribute("aria-selected", index === 0 ? "true" : "false");
+    tab.setAttribute("aria-controls", `tab-panel-${key}`);
+    tab.textContent = section.title;
+    tab.addEventListener("click", () => activateSetupTab(key));
+
+    const panel = document.createElement("div");
+    panel.className = `setup-tab-panel${index === 0 ? " active" : ""}`;
+    panel.id = `tab-panel-${key}`;
+    panel.dataset.tab = key;
+    panel.setAttribute("role", "tabpanel");
+    panel.appendChild(renderParamRows(section));
+
+    tabList.appendChild(tab);
+    panelsWrap.appendChild(panel);
+  });
+
+  tabsRoot.appendChild(tabList);
+  tabsRoot.appendChild(panelsWrap);
+  sectionsContainer.appendChild(tabsRoot);
 }
 
 function showToast(message) {
@@ -251,6 +325,15 @@ function renderSetup(setup) {
     fuelBanner.hidden = true;
   }
 
+  if (meta.available_sections?.length) {
+    setupAvailability.hidden = false;
+    setupAvailability.textContent =
+      `${meta.param_count} adjustable parameters across ${meta.available_sections.join(", ")} — ` +
+      "only values this car class can change in-game.";
+  } else {
+    setupAvailability.hidden = true;
+  }
+
   notesList.innerHTML = "";
   for (const note of setup.notes || []) {
     const li = document.createElement("li");
@@ -258,22 +341,7 @@ function renderSetup(setup) {
     notesList.appendChild(li);
   }
 
-  sectionsContainer.innerHTML = "";
-  const order = [
-    "tyres",
-    "electronics",
-    "fuel_strategy",
-    "suspension",
-    "dampers",
-    "aerodynamics",
-    "brakes",
-  ];
-  for (const key of order) {
-    const section = setup.sections[key];
-    if (section) {
-      sectionsContainer.appendChild(renderSection(key, section));
-    }
-  }
+  renderSetupTabs(setup);
 
   tipsContainer.innerHTML = "";
   for (const tip of setup.tuning_tips || []) {
@@ -315,7 +383,16 @@ stintModeBtns.forEach((btn) => {
 });
 
 lapsRange.addEventListener("input", syncLapsDisplay);
-stintMinutesRange.addEventListener("input", syncTimeDisplay);
+stintMinutesInput.addEventListener("change", syncStintMinutesFromInput);
+stintMinutesInput.addEventListener("input", syncStintMinutesFromInput);
+stintMinutesSlider.addEventListener("input", syncStintMinutesFromSlider);
+stintMinutesPreset.addEventListener("change", () => {
+  if (stintMinutesPreset.value === "custom") {
+    stintMinutesInput.focus();
+    return;
+  }
+  setStintMinutes(parseInt(stintMinutesPreset.value, 10));
+});
 trackSelect.addEventListener("change", updateTimeLapEstimate);
 
 gameSelect.addEventListener("change", () => {
@@ -349,7 +426,7 @@ form.addEventListener("submit", async (e) => {
         laps,
         game_id: currentGameId(),
         stint_mode: stintMode,
-        stint_minutes: stintMode === "time" ? parseInt(stintMinutesRange.value, 10) : null,
+        stint_minutes: stintMode === "time" ? getStintMinutes() : null,
       },
       registry
     );
@@ -372,6 +449,6 @@ copyBtn.addEventListener("click", async () => {
 });
 
 syncLapsDisplay();
-syncTimeDisplay();
+setStintMinutes(30);
 setStintMode("laps");
 loadGames().catch(() => showToast("Could not load games"));

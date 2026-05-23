@@ -54,17 +54,31 @@
               <button type="button" class="stint-mode-btn" data-mode="time" aria-pressed="false">Time</button>
             </div>
             <div class="stint-panel" id="stint-laps-panel">
+              <label for="laps" class="stint-sub-label">Number of laps</label>
               <div class="laps-control">
                 <input type="range" id="laps" name="laps" min="1" max="100" value="10" />
                 <output id="laps-value" for="laps" class="laps-output">10</output>
                 <span class="stint-unit">laps</span>
               </div>
             </div>
-            <div class="stint-panel hidden" id="stint-time-panel" hidden>
-              <div class="laps-control">
-                <input type="range" id="stint-minutes" min="5" max="120" value="30" step="5" />
-                <output id="time-value" for="stint-minutes" class="laps-output">30</output>
+            <div class="stint-panel is-hidden" id="stint-time-panel">
+              <label for="stint-minutes" class="stint-sub-label">Race / stint duration (minutes)</label>
+              <div class="stint-duration-row">
+                <select id="stint-minutes-preset" class="stint-preset" aria-label="Quick duration presets">
+                  <option value="15">15 min</option>
+                  <option value="20">20 min</option>
+                  <option value="30" selected>30 min</option>
+                  <option value="45">45 min</option>
+                  <option value="60">60 min</option>
+                  <option value="90">90 min</option>
+                  <option value="120">120 min</option>
+                  <option value="custom">Custom…</option>
+                </select>
+                <input type="number" id="stint-minutes" class="stint-minutes-input" min="5" max="240" step="5" value="30" />
                 <span class="stint-unit">min</span>
+              </div>
+              <div class="laps-control stint-duration-slider">
+                <input type="range" id="stint-minutes-slider" min="5" max="120" value="30" step="5" aria-label="Duration slider" />
               </div>
               <p class="stint-estimate" id="time-laps-estimate">≈ — laps (select a track)</p>
             </div>
@@ -119,7 +133,9 @@
 
       <ul class="notes-list" id="notes-list"></ul>
 
-      <div id="sections-container" class="sections-grid"></div>
+      <p class="setup-availability" id="setup-availability" hidden></p>
+
+      <div id="sections-container" class="setup-tabs-host"></div>
 
       <section class="tips-card glass">
         <h3 class="tips-heading">Quick fixes if something feels off</h3>

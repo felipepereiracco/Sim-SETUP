@@ -1,16 +1,81 @@
 /** Setup optimization for Assetto Corsa Evo — handling and fuel strategy (browser). */
 (function (global) {
   const CATEGORY_CAPS = {
-    road: { tyres: true, electronics: true, fuel: true, suspension: false, dampers: false, aero: false },
-    historic: { tyres: true, electronics: false, fuel: true, suspension: true, dampers: false, aero: false },
-    track_day: { tyres: true, electronics: true, fuel: true, suspension: true, dampers: true, aero: true },
-    tcr: { tyres: true, electronics: true, fuel: true, suspension: true, dampers: true, aero: true },
-    gt4: { tyres: true, electronics: true, fuel: true, suspension: true, dampers: true, aero: true },
-    gt3: { tyres: true, electronics: true, fuel: true, suspension: true, dampers: true, aero: true },
-    gt2: { tyres: true, electronics: true, fuel: true, suspension: true, dampers: true, aero: true },
-    formula: { tyres: true, electronics: true, fuel: true, suspension: true, dampers: true, aero: true },
-    prototype: { tyres: true, electronics: true, fuel: true, suspension: true, dampers: true, aero: true },
+    road: { tyres: true, electronics: true, fuel: true, suspension: false, dampers: false, aero: false, brakes: true },
+    historic: { tyres: true, electronics: false, fuel: true, suspension: true, dampers: false, aero: false, brakes: true },
+    track_day: { tyres: true, electronics: true, fuel: true, suspension: true, dampers: true, aero: true, brakes: true },
+    tcr: { tyres: true, electronics: true, fuel: true, suspension: true, dampers: true, aero: true, brakes: true },
+    gt4: { tyres: true, electronics: true, fuel: true, suspension: true, dampers: true, aero: true, brakes: true },
+    gt3: { tyres: true, electronics: true, fuel: true, suspension: true, dampers: true, aero: true, brakes: true },
+    gt2: { tyres: true, electronics: true, fuel: true, suspension: true, dampers: true, aero: true, brakes: true },
+    formula: { tyres: true, electronics: true, fuel: true, suspension: true, dampers: true, aero: true, brakes: true },
+    prototype: { tyres: true, electronics: true, fuel: true, suspension: true, dampers: true, aero: true, brakes: true },
   };
+
+  const ALL_PARAMS_BY_SECTION = {
+    tyres: ["psi_fl", "psi_fr", "psi_rl", "psi_rr", "front_camber", "rear_camber", "front_toe", "rear_toe"],
+    electronics: ["abs", "tc", "engine_map"],
+    fuel_strategy: ["fuel_load", "target_laps", "compound", "brake_pad"],
+    suspension: ["front_rh", "rear_rh", "front_arb", "rear_arb", "front_bumpstop", "rear_bumpstop", "bumpstop_range", "steering_ratio"],
+    dampers: ["f_slow_bump", "f_slow_rebound", "f_fast_bump", "f_fast_rebound", "r_slow_bump", "r_slow_rebound", "r_fast_bump", "r_fast_rebound"],
+    aerodynamics: ["front_wing", "rear_wing", "front_splitter", "rear_diffuser"],
+    brakes: ["brake_bias", "brake_pressure", "diff_preload"],
+  };
+
+  const CATEGORY_PARAMS = {
+    road: {
+      tyres: ["psi_fl", "psi_fr", "psi_rl", "psi_rr"],
+      electronics: ["abs", "tc"],
+      fuel_strategy: ["fuel_load", "target_laps", "compound"],
+      brakes: ["brake_bias"],
+    },
+    historic: {
+      tyres: ["psi_fl", "psi_fr", "psi_rl", "psi_rr", "front_camber", "rear_camber"],
+      fuel_strategy: ["fuel_load", "target_laps", "compound", "brake_pad"],
+      suspension: ["front_rh", "rear_rh", "front_arb", "rear_arb"],
+      brakes: ["brake_bias", "brake_pressure"],
+    },
+  };
+
+  const RACE_CATEGORIES = new Set(["track_day", "tcr", "gt4", "gt3", "gt2", "formula", "prototype"]);
+
+  function paramsForCategory(category, section) {
+    if (CATEGORY_PARAMS[category]?.[section]) return CATEGORY_PARAMS[category][section];
+    if (RACE_CATEGORIES.has(category)) return ALL_PARAMS_BY_SECTION[section] || [];
+    return [];
+  }
+
+  function pickRows(rows, allowed) {
+    const allowedSet = new Set(allowed);
+    return rows
+      .filter((r) => allowedSet.has(r.key))
+      .map(({ key, ...rest }) => rest);
+  }
+
+  function addSection(setup, sectionKey, title, rows, allowed) {
+    const values = pickRows(rows, allowed);
+    if (!values.length) return;
+    setup.sections[sectionKey] = { title, values };
+  }
+
+  function buildTuningTips(caps, fuel) {
+    const enabled = {
+      tyres: caps.tyres,
+      electronics: caps.electronics,
+      fuel_strategy: caps.fuel,
+      suspension: caps.suspension,
+      dampers: caps.dampers,
+      aerodynamics: caps.aero,
+    };
+    const tips = [
+      { issue: "Understeer on entry", fix: "Soften front ARB, add 0.02° front toe-out, or +1 front wing", needs: ["suspension", "aerodynamics"] },
+      { issue: "Oversteer on exit", fix: "Soften rear slow bump, lower rear ride height 2 mm, or +1 rear wing", needs: ["dampers", "aerodynamics"] },
+      { issue: "Tyres overheating", fix: "Raise pressures 0.5 psi, reduce camber 0.2°, lower TC by 1", needs: ["tyres", "electronics"] },
+      { issue: "Running out of fuel", fix: `Add ~${fuel.per_lap.toFixed(1)} L per extra lap; use economy map and +1 TC`, needs: ["fuel_strategy", "electronics"] },
+      { issue: "Instability over kerbs", fix: "Soften fast bump 1 click, increase bumpstop range 2 mm", needs: ["dampers", "suspension"] },
+    ];
+    return tips.filter((tip) => tip.needs.some((s) => enabled[s]));
+  }
 
   const TRACK_AERO_BIAS = {
     low_downforce: { front_wing: -4, rear_wing: -6, ride_height_mm: 8 },
@@ -183,8 +248,16 @@
       );
     }
     if (gameId === "gt7") {
-      notes.push("GT7: apply values in Car Settings — tyres, suspension, diff, and downforce menus.");
+      notes.push("GT7: apply values in Car Settings — only menus that exist for this car model are listed.");
     }
+    return notes;
+  }
+
+  function appendAvailabilityNote(notes, category, sectionCount, paramCount) {
+    notes.push(
+      `${sectionCount} setup group${sectionCount !== 1 ? "s" : ""}, ${paramCount} parameter${paramCount !== 1 ? "s" : ""} — ` +
+        `limited to what ${category.replace(/_/g, " ")} cars can adjust in-game.`
+    );
     return notes;
   }
 
@@ -326,128 +399,111 @@
       sections: {},
     };
 
-    if (caps.tyres) {
-      setup.sections.tyres = {
-        title: "Tyres",
-        values: [
-          { label: "Front Left Pressure", value: `${(base.psi_fl + pd).toFixed(1)} psi`, hint: "Target green centre temps after 3–4 laps" },
-          { label: "Front Right Pressure", value: `${(base.psi_fr + pd).toFixed(1)} psi`, hint: "Match opposite front for balance" },
-          { label: "Rear Left Pressure", value: `${(base.psi_rl + pd).toFixed(1)} psi`, hint: "Slightly lower than front for rotation" },
-          { label: "Rear Right Pressure", value: `${(base.psi_rr + pd).toFixed(1)} psi`, hint: "Re-check after fuel burn and suspension changes" },
-          { label: "Front Camber", value: `${frontCamber.toFixed(1)}°`, hint: "More negative = mid-corner grip, less straight-line traction" },
-          { label: "Rear Camber", value: `${rearCamber.toFixed(1)}°`, hint: "Keep rear less aggressive than front" },
-          { label: "Front Toe", value: `${frontToe.toFixed(2)}° out`, hint: "Light toe-out sharpens turn-in" },
-          { label: "Rear Toe", value: `${rearToe.toFixed(2)}° in`, hint: "Toe-in stabilizes the rear under braking" },
-        ],
-      };
+    const tc = Math.floor(clamp(base.tc + fuel.tc_offset, 0, 12));
+    let absLevel = base.abs;
+    if (priority === "fuel_efficiency") absLevel = Math.floor(clamp(absLevel + 1, 0, 12));
+    const compound =
+      stint === "endurance" && isRace ? "Slick Medium" : isRace ? "Slick Soft" : "Street Sport";
+    let arbFront = track.profile === "technical" ? 6 : 5;
+    let arbRear = track.profile === "high_speed" ? 4 : 5;
+    if (stint === "endurance") {
+      arbFront -= 1;
+      arbRear -= 1;
     }
-
-    if (caps.electronics) {
-      const tc = Math.floor(clamp(base.tc + fuel.tc_offset, 0, 12));
-      let absLevel = base.abs;
-      if (priority === "fuel_efficiency") absLevel = Math.floor(clamp(absLevel + 1, 0, 12));
-      setup.sections.electronics = {
-        title: "Electronics",
-        values: [
-          { label: "ABS", value: String(absLevel), hint: "Higher = more stability under threshold braking" },
-          { label: "Traction Control", value: String(tc), hint: "Higher TC saves fuel; lower TC for maximum drive" },
-          { label: "Engine Map", value: fuel.map_hint, hint: "Match map to stint length and fuel target" },
-        ],
-      };
+    let bumpScale = track.profile === "bumpy" || track.profile === "endurance" ? 1.15 : 1.0;
+    if (stint === "endurance") bumpScale *= 1.05;
+    let fw = clamp(8 + aeroBias.front_wing, 0, 12);
+    let rw = clamp(10 + aeroBias.rear_wing, 0, 15);
+    if (priority === "fuel_efficiency" && track.profile !== "technical") {
+      fw = Math.max(0, fw - 1);
+      rw = Math.max(0, rw - 2);
     }
-
-    if (caps.fuel) {
-      const compound =
-        stint === "endurance" && isRace ? "Slick Medium" : isRace ? "Slick Soft" : "Street Sport";
-      setup.sections.fuel_strategy = {
-        title: "Fuel & Strategy",
-        values: [
-          { label: "Fuel Load", value: `${Math.round(fuel.litres)} L`, hint: `~${fuel.per_lap.toFixed(2)} L/lap × ${lapsInt} laps + ${fuel.safety_laps.toFixed(1)} lap reserve` },
-          { label: "Target Laps", value: String(lapsInt), hint: `Stint type: ${stint.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}` },
-          { label: "Tyre Compound", value: compound, hint: "Medium often better for long stints; soft for qualifying sprint" },
-          { label: "Brake Pad Compound", value: isRace ? "Racing" : "Sport", hint: "Racing pads for repeated heavy braking zones" },
-        ],
-      };
-    }
-
-    if (caps.suspension) {
-      let arbFront = track.profile === "technical" ? 6 : 5;
-      let arbRear = track.profile === "high_speed" ? 4 : 5;
-      if (stint === "endurance") {
-        arbFront -= 1;
-        arbRear -= 1;
-      }
-      setup.sections.suspension = {
-        title: "Suspension",
-        values: [
-          { label: "Front Ride Height", value: `${frontRh} mm`, hint: "Lower = downforce; raise if bottoming on kerbs" },
-          { label: "Rear Ride Height", value: `${rearRh} mm`, hint: "Keep rear higher than front for stability" },
-          { label: "Front Anti-Roll Bar", value: `${arbFront} / 10`, hint: "Stiffer front = more understeer on entry" },
-          { label: "Rear Anti-Roll Bar", value: `${arbRear} / 10`, hint: "Softer rear helps rotation on exit" },
-          { label: "Front Bumpstop Rate", value: "Medium-Stiff", hint: "Stiffer front reduces dive under braking" },
-          { label: "Rear Bumpstop Rate", value: "Medium", hint: "Softer rear absorbs traction squat" },
-          { label: "Bumpstop Range (F/R)", value: "42 mm / 48 mm", hint: "More range on bumpy tracks" },
-          { label: "Steering Ratio", value: isRace ? "12:1" : "14:1", hint: "Quicker ratio for tight circuits" },
-        ],
-      };
-    }
-
-    if (caps.dampers) {
-      let bumpScale = track.profile === "bumpy" || track.profile === "endurance" ? 1.15 : 1.0;
-      if (stint === "endurance") bumpScale *= 1.05;
-      setup.sections.dampers = {
-        title: "Dampers",
-        values: [
-          { label: "Front Slow Bump", value: String(Math.floor(5 * bumpScale)), hint: "Controls pitch under braking" },
-          { label: "Front Slow Rebound", value: "6", hint: "Higher slows front lift on throttle" },
-          { label: "Front Fast Bump", value: track.kerbs === "aggressive" ? "4" : "5", hint: "Softer absorbs kerb strikes" },
-          { label: "Front Fast Rebound", value: "5", hint: "Lets suspension recover after kerbs" },
-          { label: "Rear Slow Bump", value: String(Math.floor(4 * bumpScale)), hint: "Softer rear improves traction on exit" },
-          { label: "Rear Slow Rebound", value: "5", hint: "Controls rear lift under braking" },
-          { label: "Rear Fast Bump", value: "4", hint: "Match front for platform stability" },
-          { label: "Rear Fast Rebound", value: "5", hint: "Balance with slow rebound for rotation" },
-        ],
-      };
-    }
-
-    if (caps.aero) {
-      let fw = clamp(8 + aeroBias.front_wing, 0, 12);
-      let rw = clamp(10 + aeroBias.rear_wing, 0, 15);
-      if (priority === "fuel_efficiency" && track.profile !== "technical") {
-        fw = Math.max(0, fw - 1);
-        rw = Math.max(0, rw - 2);
-      }
-      setup.sections.aerodynamics = {
-        title: "Aerodynamics",
-        values: [
-          { label: "Front Wing", value: String(Math.floor(fw)), hint: "More front wing reduces understeer in high-speed corners" },
-          { label: "Rear Wing", value: String(Math.floor(rw)), hint: "Lower rear wing saves fuel on straights" },
-          { label: "Front Splitter", value: ["gt3", "gt2", "prototype"].includes(category) ? "Medium" : "Fixed", hint: "Increase on high-downforce tracks" },
-          { label: "Rear Diffuser / Gurney", value: "Standard +1", hint: "Fine-tune if rear feels light at speed" },
-        ],
-      };
-    }
-
     let brakeBias = 58.0;
     if (goal === "stable_entry") brakeBias = 59.0;
     else if (goal === "rotation_exit") brakeBias = 57.0;
 
-    setup.sections.brakes = {
-      title: "Brakes & Differential",
-      values: [
-        { label: "Brake Bias", value: `${brakeBias.toFixed(1)}% front`, hint: "Rearward if front locks; forward if rear steps out under braking" },
-        { label: "Brake Pressure", value: "95%", hint: "Full pressure for race cars; reduce if ABS triggers too early" },
-        { label: "Preload / Diff", value: isRace ? "120 Nm" : "Open", hint: "Higher preload stabilizes throttle-on; can add understeer" },
-      ],
-    };
+    if (caps.tyres) {
+      addSection(setup, "tyres", "Tyres", [
+        { key: "psi_fl", label: "Front Left Pressure", value: `${(base.psi_fl + pd).toFixed(1)} psi`, hint: "Target green centre temps after 3–4 laps" },
+        { key: "psi_fr", label: "Front Right Pressure", value: `${(base.psi_fr + pd).toFixed(1)} psi`, hint: "Match opposite front for balance" },
+        { key: "psi_rl", label: "Rear Left Pressure", value: `${(base.psi_rl + pd).toFixed(1)} psi`, hint: "Slightly lower than front for rotation" },
+        { key: "psi_rr", label: "Rear Right Pressure", value: `${(base.psi_rr + pd).toFixed(1)} psi`, hint: "Re-check after fuel burn and suspension changes" },
+        { key: "front_camber", label: "Front Camber", value: `${frontCamber.toFixed(1)}°`, hint: "More negative = mid-corner grip, less straight-line traction" },
+        { key: "rear_camber", label: "Rear Camber", value: `${rearCamber.toFixed(1)}°`, hint: "Keep rear less aggressive than front" },
+        { key: "front_toe", label: "Front Toe", value: `${frontToe.toFixed(2)}° out`, hint: "Light toe-out sharpens turn-in" },
+        { key: "rear_toe", label: "Rear Toe", value: `${rearToe.toFixed(2)}° in`, hint: "Toe-in stabilizes the rear under braking" },
+      ], paramsForCategory(category, "tyres"));
+    }
 
-    setup.tuning_tips = [
-      { issue: "Understeer on entry", fix: "Soften front ARB, add 0.02° front toe-out, or +1 front wing" },
-      { issue: "Oversteer on exit", fix: "Soften rear slow bump, lower rear ride height 2 mm, or +1 rear wing" },
-      { issue: "Tyres overheating", fix: "Raise pressures 0.5 psi, reduce camber 0.2°, lower TC by 1" },
-      { issue: "Running out of fuel", fix: `Add ~${fuel.per_lap.toFixed(1)} L per extra lap; use economy map and +1 TC` },
-      { issue: "Instability over kerbs", fix: "Soften fast bump 1 click, increase bumpstop range 2 mm" },
-    ];
+    if (caps.electronics) {
+      addSection(setup, "electronics", "Electronics", [
+        { key: "abs", label: "ABS", value: String(absLevel), hint: "Higher = more stability under threshold braking" },
+        { key: "tc", label: "Traction Control", value: String(tc), hint: "Higher TC saves fuel; lower TC for maximum drive" },
+        { key: "engine_map", label: "Engine Map", value: fuel.map_hint, hint: "Match map to stint length and fuel target" },
+      ], paramsForCategory(category, "electronics"));
+    }
+
+    if (caps.fuel) {
+      addSection(setup, "fuel_strategy", "Fuel & Strategy", [
+        { key: "fuel_load", label: "Fuel Load", value: `${Math.round(fuel.litres)} L`, hint: `~${fuel.per_lap.toFixed(2)} L/lap × ${lapsInt} laps + ${fuel.safety_laps.toFixed(1)} lap reserve` },
+        { key: "target_laps", label: "Target Laps", value: String(lapsInt), hint: `Stint type: ${stint.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}` },
+        { key: "compound", label: "Tyre Compound", value: compound, hint: "Medium often better for long stints; soft for qualifying sprint" },
+        { key: "brake_pad", label: "Brake Pad Compound", value: isRace ? "Racing" : "Sport", hint: "Racing pads for repeated heavy braking zones" },
+      ], paramsForCategory(category, "fuel_strategy"));
+    }
+
+    if (caps.suspension) {
+      addSection(setup, "suspension", "Suspension", [
+        { key: "front_rh", label: "Front Ride Height", value: `${frontRh} mm`, hint: "Lower = downforce; raise if bottoming on kerbs" },
+        { key: "rear_rh", label: "Rear Ride Height", value: `${rearRh} mm`, hint: "Keep rear higher than front for stability" },
+        { key: "front_arb", label: "Front Anti-Roll Bar", value: `${arbFront} / 10`, hint: "Stiffer front = more understeer on entry" },
+        { key: "rear_arb", label: "Rear Anti-Roll Bar", value: `${arbRear} / 10`, hint: "Softer rear helps rotation on exit" },
+        { key: "front_bumpstop", label: "Front Bumpstop Rate", value: "Medium-Stiff", hint: "Stiffer front reduces dive under braking" },
+        { key: "rear_bumpstop", label: "Rear Bumpstop Rate", value: "Medium", hint: "Softer rear absorbs traction squat" },
+        { key: "bumpstop_range", label: "Bumpstop Range (F/R)", value: "42 mm / 48 mm", hint: "More range on bumpy tracks" },
+        { key: "steering_ratio", label: "Steering Ratio", value: isRace ? "12:1" : "14:1", hint: "Quicker ratio for tight circuits" },
+      ], paramsForCategory(category, "suspension"));
+    }
+
+    if (caps.dampers) {
+      addSection(setup, "dampers", "Dampers", [
+        { key: "f_slow_bump", label: "Front Slow Bump", value: String(Math.floor(5 * bumpScale)), hint: "Controls pitch under braking" },
+        { key: "f_slow_rebound", label: "Front Slow Rebound", value: "6", hint: "Higher slows front lift on throttle" },
+        { key: "f_fast_bump", label: "Front Fast Bump", value: track.kerbs === "aggressive" ? "4" : "5", hint: "Softer absorbs kerb strikes" },
+        { key: "f_fast_rebound", label: "Front Fast Rebound", value: "5", hint: "Lets suspension recover after kerbs" },
+        { key: "r_slow_bump", label: "Rear Slow Bump", value: String(Math.floor(4 * bumpScale)), hint: "Softer rear improves traction on exit" },
+        { key: "r_slow_rebound", label: "Rear Slow Rebound", value: "5", hint: "Controls rear lift under braking" },
+        { key: "r_fast_bump", label: "Rear Fast Bump", value: "4", hint: "Match front for platform stability" },
+        { key: "r_fast_rebound", label: "Rear Fast Rebound", value: "5", hint: "Balance with slow rebound for rotation" },
+      ], paramsForCategory(category, "dampers"));
+    }
+
+    if (caps.aero) {
+      addSection(setup, "aerodynamics", "Aerodynamics", [
+        { key: "front_wing", label: "Front Wing", value: String(Math.floor(fw)), hint: "More front wing reduces understeer in high-speed corners" },
+        { key: "rear_wing", label: "Rear Wing", value: String(Math.floor(rw)), hint: "Lower rear wing saves fuel on straights" },
+        { key: "front_splitter", label: "Front Splitter", value: ["gt3", "gt2", "prototype"].includes(category) ? "Medium" : "Fixed", hint: "Increase on high-downforce tracks" },
+        { key: "rear_diffuser", label: "Rear Diffuser / Gurney", value: "Standard +1", hint: "Fine-tune if rear feels light at speed" },
+      ], paramsForCategory(category, "aerodynamics"));
+    }
+
+    if (caps.brakes) {
+      addSection(setup, "brakes", "Brakes & Differential", [
+        { key: "brake_bias", label: "Brake Bias", value: `${brakeBias.toFixed(1)}% front`, hint: "Rearward if front locks; forward if rear steps out under braking" },
+        { key: "brake_pressure", label: "Brake Pressure", value: "95%", hint: "Full pressure for race cars; reduce if ABS triggers too early" },
+        { key: "diff_preload", label: "Preload / Diff", value: isRace ? "120 Nm" : "Open", hint: "Higher preload stabilizes throttle-on; can add understeer" },
+      ], paramsForCategory(category, "brakes"));
+    }
+
+    setup.meta.available_sections = Object.values(setup.sections).map((s) => s.title);
+    setup.meta.param_count = Object.values(setup.sections).reduce((n, s) => n + s.values.length, 0);
+    setup.tuning_tips = buildTuningTips(caps, fuel);
+    setup.notes = appendAvailabilityNote(
+      setup.notes,
+      category,
+      setup.meta.available_sections.length,
+      setup.meta.param_count
+    );
 
     return setup;
   }
