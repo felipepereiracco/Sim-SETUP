@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "games": [
+    {
+      "id": "ac_evo",
+      "name": "Assetto Corsa Evo",
+      "short_name": "AC Evo",
+      "version_label": "Early Access v0.6",
+      "active": true,
+      "data_files": {
+        "cars": "cars.json",
+        "tracks": "tracks.json"
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+[
+  {"id": "imola", "name": "Imola", "layout": "Grand Prix", "country": "Italy", "profile": "technical", "avg_speed": "medium", "kerbs": "aggressive", "elevation": "low", "length_km": 4.91},
+  {"id": "brands_hatch", "name": "Brands Hatch", "layout": "Grand Prix", "country": "UK", "profile": "technical", "avg_speed": "medium", "kerbs": "moderate", "elevation": "medium", "length_km": 3.91},
+  {"id": "spa", "name": "Spa-Francorchamps", "layout": "Grand Prix", "country": "Belgium", "profile": "high_speed", "avg_speed": "high", "kerbs": "moderate", "elevation": "high", "length_km": 7.00},
+  {"id": "cota", "name": "Circuit of the Americas", "layout": "Grand Prix", "country": "USA", "profile": "mixed", "avg_speed": "high", "kerbs": "moderate", "elevation": "medium", "length_km": 5.51},
+  {"id": "donington", "name": "Donington Park", "layout": "Grand Prix", "country": "UK", "profile": "technical", "avg_speed": "medium", "kerbs": "moderate", "elevation": "medium", "length_km": 4.02},
+  {"id": "fuji", "name": "Fuji International Speedway", "layout": "Grand Prix", "country": "Japan", "profile": "high_speed", "avg_speed": "high", "kerbs": "moderate", "elevation": "medium", "length_km": 4.56},
+  {"id": "laguna_seca", "name": "Laguna Seca", "layout": "Grand Prix", "country": "USA", "profile": "technical", "avg_speed": "medium", "kerbs": "aggressive", "elevation": "high", "length_km": 3.60},
+  {"id": "bathurst", "name": "Mount Panorama", "layout": "Bathurst", "country": "Australia", "profile": "elevation", "avg_speed": "high", "kerbs": "moderate", "elevation": "very_high", "length_km": 6.21},
+  {"id": "red_bull_ring", "name": "Red Bull Ring", "layout": "Grand Prix", "country": "Austria", "profile": "high_speed", "avg_speed": "high", "kerbs": "moderate", "elevation": "medium", "length_km": 4.32},
+  {"id": "suzuka", "name": "Suzuka Circuit", "layout": "Grand Prix", "country": "Japan", "profile": "technical", "avg_speed": "high", "kerbs": "moderate", "elevation": "low", "length_km": 5.81},
+  {"id": "nordschleife_24h", "name": "Nürburgring Nordschleife", "layout": "24H", "country": "Germany", "profile": "endurance", "avg_speed": "high", "kerbs": "aggressive", "elevation": "very_high", "length_km": 25.38},
+  {"id": "nordschleife_tourist", "name": "Nürburgring Nordschleife", "layout": "Touristenfahrten", "country": "Germany", "profile": "endurance", "avg_speed": "medium", "kerbs": "aggressive", "elevation": "very_high", "length_km": 20.83},
+  {"id": "nurburgring_gp", "name": "Nürburgring", "layout": "Grand Prix", "country": "Germany", "profile": "technical", "avg_speed": "high", "kerbs": "moderate", "elevation": "medium", "length_km": 5.15},
+  {"id": "oulton_international", "name": "Oulton Park", "layout": "International", "country": "UK", "profile": "technical", "avg_speed": "medium", "kerbs": "moderate", "elevation": "medium", "length_km": 4.35},
+  {"id": "oulton_foster", "name": "Oulton Park", "layout": "Foster", "country": "UK", "profile": "technical", "avg_speed": "low", "kerbs": "moderate", "elevation": "medium", "length_km": 2.69},
+  {"id": "road_atlanta", "name": "Road Atlanta", "layout": "Grand Prix", "country": "USA", "profile": "high_speed", "avg_speed": "high", "kerbs": "moderate", "elevation": "high", "length_km": 4.09},
+  {"id": "monza", "name": "Monza", "layout": "Grand Prix", "country": "Italy", "profile": "low_downforce", "avg_speed": "very_high", "kerbs": "moderate", "elevation": "low", "length_km": 5.79},
+  {"id": "watkins_glen", "name": "Watkins Glen International", "layout": "Grand Prix", "country": "USA", "profile": "high_speed", "avg_speed": "high", "kerbs": "moderate", "elevation": "medium", "length_km": 5.43},
+  {"id": "paul_ricard", "name": "Circuit Paul Ricard", "layout": "Grand Prix", "country": "France", "profile": "high_speed", "avg_speed": "high", "kerbs": "mild", "elevation": "low", "length_km": 5.84},
+  {"id": "sebring", "name": "Sebring International Raceway", "layout": "Grand Prix", "country": "USA", "profile": "bumpy", "avg_speed": "medium", "kerbs": "aggressive", "elevation": "low", "length_km": 5.95}
+]

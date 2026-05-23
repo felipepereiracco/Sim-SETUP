@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Optimized car setups for Assetto Corsa Evo — handling and fuel strategy by lap count." />
+  <title>ACE Setup — Optimized for every lap</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <nav class="nav glass">
+    <div class="nav-inner">
+      <a href="#" class="logo">ACE Setup</a>
+      <span class="nav-badge" id="game-badge">Assetto Corsa Evo</span>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <p class="hero-eyebrow">Handling &amp; fuel strategy</p>
+    <h1 class="hero-title">Every combo.<br />Every stint.</h1>
+    <p class="hero-subtitle">
+      Select any car and track in Assetto Corsa Evo, set your lap count, and get a full setup tuned for
+      grip, balance, and fuel load — ready to enter in-game.
+    </p>
+  </header>
+
+  <main class="main">
+    <section class="selector-card glass" id="selector">
+      <form id="setup-form" class="setup-form">
+        <div class="form-grid">
+          <div class="field">
+            <label for="car">Car</label>
+            <select id="car" name="car_id" required>
+              <option value="">Choose a car…</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="track">Track</label>
+            <select id="track" name="track_id" required>
+              <option value="">Choose a track…</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="laps">Number of laps</label>
+            <div class="laps-control">
+              <input type="range" id="laps" name="laps" min="1" max="60" value="10" />
+              <output id="laps-value" for="laps" class="laps-output">10</output>
+            </div>
+            <p class="field-hint">Fuel load and stint tuning scale with lap count (1–200 via direct input).</p>
+            <input type="number" id="laps-exact" class="laps-exact" min="1" max="200" value="10" aria-label="Exact lap count" />
+          </div>
+          <div class="field">
+            <label for="priority">Optimization focus</label>
+            <select id="priority" name="priority">
+              <option value="balanced">Balanced (handling + fuel)</option>
+              <option value="handling">Maximum handling</option>
+              <option value="fuel_efficiency">Fuel efficiency</option>
+            </select>
+          </div>
+          <div class="field field-full">
+            <label for="goal">Handling goal</label>
+            <select id="goal" name="goal">
+              <option value="balanced_handling">Balanced handling (recommended)</option>
+              <option value="stable_entry">Stable corner entry</option>
+              <option value="rotation_exit">Rotation on exit</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" id="generate-btn">
+          <span class="btn-label">Generate setup</span>
+          <span class="btn-spinner" hidden aria-hidden="true"></span>
+        </button>
+      </form>
+    </section>
+
+    <section class="results" id="results" hidden>
+      <div class="fuel-banner glass" id="fuel-banner" hidden>
+        <div class="fuel-stat">
+          <span class="fuel-stat-label">Fuel load</span>
+          <span class="fuel-stat-value" id="fuel-litres">—</span>
+        </div>
+        <div class="fuel-stat">
+          <span class="fuel-stat-label">Est. per lap</span>
+          <span class="fuel-stat-value" id="fuel-per-lap">—</span>
+        </div>
+        <div class="fuel-stat">
+          <span class="fuel-stat-label">Distance</span>
+          <span class="fuel-stat-value" id="fuel-distance">—</span>
+        </div>
+      </div>
+
+      <div class="results-header">
+        <div>
+          <h2 class="results-title" id="results-title">Your setup</h2>
+          <p class="results-meta" id="results-meta"></p>
+        </div>
+        <button type="button" class="btn-secondary" id="copy-btn">Copy all values</button>
+      </div>
+
+      <ul class="notes-list" id="notes-list"></ul>
+
+      <div id="sections-container" class="sections-grid"></div>
+
+      <section class="tips-card glass">
+        <h3 class="tips-heading">Quick fixes if something feels off</h3>
+        <div id="tips-container" class="tips-grid"></div>
+      </section>
+    </section>
+
+    <p class="disclaimer" id="disclaimer">
+      Recommendations follow sim-racing best practices for AC Evo Early Access. Always validate with tyre
+      temps and lap feel. In-game setup options vary by car class. Not affiliated with Kunos Simulazioni.
+    </p>
+  </main>
+
+  <footer class="footer">
+    <p>Modular data layer — extend <code>data/manifest.json</code> for future titles.</p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
